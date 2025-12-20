@@ -12,12 +12,12 @@ dependencies:
     sdk: flutter
   flutter_web_plugins:
     sdk: flutter
-  web: ^0.5.1
-  plugin_platform_interface: ^2.0.2
-  permission_handler: ^11.0.1
-  geolocator: ^10.1.0
-  flutter_blue_plus: ^1.31.0
-  app_settings: ^5.1.1
+  web:
+  plugin_platform_interface:
+  permission_handler:
+  geolocator:
+  flutter_blue_plus:
+  app_settings:
 
 dev_dependencies:
   flutter_test:
