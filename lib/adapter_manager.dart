@@ -230,7 +230,7 @@ class AdapterManager {
   /// Open location settings
   static Future<void> openLocationSettings() async {
     try {
-      await AppSettings.openAppSettings(type: AppSettingsType.location);
+      await AppSettings.openAppSettings(type: AppSettingsType.settings);
     } catch (e) {
       print('Error opening location settings: $e');
     }
@@ -239,7 +239,7 @@ class AdapterManager {
   /// Open Bluetooth settings
   static Future<void> openBluetoothSettings() async {
     try {
-      await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
+      await AppSettings.openAppSettings(type: AppSettingsType.settings);
     } catch (e) {
       print('Error opening Bluetooth settings: $e');
     }
