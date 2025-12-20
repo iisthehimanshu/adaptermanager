@@ -345,6 +345,7 @@ class AdapterManager {
     final errors = <String>[];
     final result = <String, dynamic>{
       'success': false,
+      'PermanentlyDenied': false,
       'locationPermission': false,
       'gpsEnabled': false,
       'bluetoothPermission': false,
@@ -413,6 +414,7 @@ class AdapterManager {
       if (!bluetoothEnabled) {
         print('Bluetooth disabled. Prompting user to enable...');
         final bluetoothPromptResult = await promptEnableBluetooth();
+        print("bluetoothPromptResult $bluetoothPromptResult");
         result['bluetoothEnabled'] = bluetoothPromptResult;
 
         if (!bluetoothPromptResult) {
