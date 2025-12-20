@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:app_settings/app_settings.dart';
 
 export 'package:geolocator/geolocator.dart';
 export 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -200,14 +201,14 @@ class AdapterManager {
         return await isBluetoothEnabled();
       } else if (Platform.isIOS) {
         // On iOS, we can only open settings
-        await openAppSettings();
+        await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
         return false;
       }
       return false;
     } catch (e) {
       print('Error prompting Bluetooth enable: $e');
       // If turnOn fails, try opening settings
-      await openAppSettings();
+      await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
       return false;
     }
   }
@@ -217,10 +218,10 @@ class AdapterManager {
     return FlutterBluePlus.adapterState;
   }
 
-  /// Open app settings (general)
+  /// Open app settings
   static Future<void> openAppSettings() async {
     try {
-      await openAppSettings();
+      await AppSettings.openAppSettings();
     } catch (e) {
       print('Error opening app settings: $e');
     }
@@ -229,9 +230,7 @@ class AdapterManager {
   /// Open location settings
   static Future<void> openLocationSettings() async {
     try {
-      // permission_handler's openAppSettings() opens the app's settings page
-      // where users can enable location permissions
-      await openAppSettings();
+      await AppSettings.openAppSettings(type: AppSettingsType.location);
     } catch (e) {
       print('Error opening location settings: $e');
     }
@@ -240,9 +239,7 @@ class AdapterManager {
   /// Open Bluetooth settings
   static Future<void> openBluetoothSettings() async {
     try {
-      // permission_handler's openAppSettings() opens the app's settings page
-      // where users can enable Bluetooth permissions
-      await openAppSettings();
+      await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
     } catch (e) {
       print('Error opening Bluetooth settings: $e');
     }
