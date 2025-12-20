@@ -9,6 +9,7 @@ import 'package:app_settings/app_settings.dart';
 
 export 'package:geolocator/geolocator.dart';
 export 'package:flutter_blue_plus/flutter_blue_plus.dart';
+export 'AdapterException.dart';
 
 class AdapterManager {
   /// Check if location permission is granted
