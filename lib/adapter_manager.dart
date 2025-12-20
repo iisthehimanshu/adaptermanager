@@ -354,7 +354,8 @@ class AdapterManager {
         final isPermanentlyDenied = await isLocationPermanentlyDenied();
         if (isPermanentlyDenied) {
           errors.add('Location permission permanently denied. Please enable in settings.');
-          await openLocationSettings();
+          // await openLocationSettings();
+          result['PermanentlyDenied'] = true;
           return result;
         } else {
           errors.add('Location permission denied.');
@@ -388,7 +389,8 @@ class AdapterManager {
         final isPermanentlyDenied = await isBluetoothPermanentlyDenied();
         if (isPermanentlyDenied) {
           errors.add('Bluetooth permission permanently denied. Please enable in settings.');
-          await openBluetoothSettings();
+          // await openBluetoothSettings();
+          result['PermanentlyDenied'] = true;
           return result;
         } else {
           errors.add('Bluetooth permission denied.');
