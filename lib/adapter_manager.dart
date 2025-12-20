@@ -207,7 +207,15 @@ class AdapterManager {
       return false;
     } catch (e) {
       print('Error prompting Bluetooth enable: $e');
-      // If turnOn fails, try opening settings
+
+      // Check if user rejected the prompt
+      if (e.toString().contains('user rejected') ||
+          e.toString().contains('fbp-code: 11')) {
+        // User explicitly rejected, don't open settings
+        return false;
+      }
+
+      // For other errors, open settings as fallback
       await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
       return false;
     }
