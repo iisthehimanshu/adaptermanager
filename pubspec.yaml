@@ -17,7 +17,7 @@ dependencies:
   permission_handler:
   geolocator:
   flutter_blue_plus:
-  app_settings:
+  app_settings: ^5.1.1
 
 dev_dependencies:
   flutter_test:
