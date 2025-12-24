@@ -1,15 +1,18 @@
 library adapter_manager;
 
 import 'dart:io';
+import 'package:adapter_manager/AdapterException.dart';
+import 'package:bluetooth_enable_fork/bluetooth_enable_fork.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:app_settings/app_settings.dart';
 
-export 'package:geolocator/geolocator.dart';
 export 'package:flutter_blue_plus/flutter_blue_plus.dart';
 export 'AdapterException.dart';
+export 'package:permission_handler/permission_handler.dart';
+export 'UI/LocationServicesDialog.dart';
 
 class AdapterManager {
   /// Check if location permission is granted
@@ -24,15 +27,31 @@ class AdapterManager {
   }
 
   /// Request location permission
-  static Future<bool> requestLocationPermission() async {
+  static Future<PermissionStatus> requestLocationPermission() async {
     try {
-      final status = await Permission.location.request();
-      return status.isGranted;
+      if (Platform.isAndroid) {
+        final status = await Permission.location.request();
+        print("Android location permission: $status");
+        return status;
+      } else {
+        LocationPermission permission = await Geolocator.requestPermission();
+        print("iphone location permission: $permission");
+        if(permission == LocationPermission.always || permission == LocationPermission.whileInUse){
+          return PermissionStatus.granted;
+        }else if(permission == LocationPermission.denied){
+          return PermissionStatus.denied;
+        }else if(permission == LocationPermission.deniedForever){
+          return PermissionStatus.permanentlyDenied;
+        }else{
+          return PermissionStatus.denied;
+        }
+      }
     } catch (e) {
       print('Error requesting location permission: $e');
-      return false;
+      return PermissionStatus.denied;
     }
   }
+
 
   /// Check if precise location permission is granted (iOS 14+)
   static Future<bool> isLocationAlwaysGranted() async {
@@ -75,25 +94,35 @@ class AdapterManager {
     }
   }
 
+  // This will trigger the permission dialog on iOS
+  static Future<void> initializeBluetooth() async {
+    try {
+      // The permission dialog appears when you start scanning or initialize
+      await FlutterBluePlus.startScan(timeout: Duration(seconds: 4));
+      await FlutterBluePlus.stopScan();
+    } catch (e) {
+      print('Error initializing Bluetooth: $e');
+    }
+  }
+
   /// Request Bluetooth permission
-  static Future<bool> requestBluetoothPermission() async {
+  static Future<PermissionStatus> requestBluetoothPermission() async {
     try {
       if (Platform.isAndroid) {
-        final statuses = await [
-          Permission.bluetoothScan,
-          Permission.bluetoothConnect,
-        ].request();
-
-        return statuses[Permission.bluetoothScan]?.isGranted == true &&
-            statuses[Permission.bluetoothConnect]?.isGranted == true;
+        final status = await Permission.bluetoothScan.request();
+        return status;
       } else if (Platform.isIOS) {
-        final status = await Permission.bluetooth.request();
-        return status.isGranted;
+        try{
+          await initializeBluetooth();
+          return PermissionStatus.granted;
+        }catch(e){
+          return PermissionStatus.denied;
+        }
       }
-      return false;
+      return PermissionStatus.denied;
     } catch (e) {
       print('Error requesting Bluetooth permission: $e');
-      return false;
+      return PermissionStatus.denied;
     }
   }
 
@@ -143,7 +172,7 @@ class AdapterManager {
         // Try to trigger the system GPS prompt by requesting location
         try {
           await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.low,
+            desiredAccuracy: LocationAccuracy.high,
             timeLimit: const Duration(seconds: 120),
           );
           for(int i = 0; i < 240; i++){
@@ -200,8 +229,17 @@ class AdapterManager {
         await Future.delayed(const Duration(seconds: 1));
         return await isBluetoothEnabled();
       } else if (Platform.isIOS) {
-        // On iOS, we can only open settings
-        await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
+        BluetoothEnable.enableBluetooth.then((result) {
+          if (result == "true") {
+           return true;
+          }
+          else if (result == "false") {
+            return false;
+          }
+        });
+        // await FlutterBluePlus.turnOn();
+        // await AppSettings.openAppSettings(type: AppSettingsType.bluetooth);
+
         return false;
       }
       return false;
@@ -238,7 +276,7 @@ class AdapterManager {
   /// Open location settings
   static Future<void> openLocationSettings() async {
     try {
-      await AppSettings.openAppSettings(type: AppSettingsType.settings);
+      await AppSettings.openAppSettings(type: AppSettingsType.location);
     } catch (e) {
       print('Error opening location settings: $e');
     }
@@ -250,35 +288,6 @@ class AdapterManager {
       await AppSettings.openAppSettings(type: AppSettingsType.settings);
     } catch (e) {
       print('Error opening Bluetooth settings: $e');
-    }
-  }
-
-  /// Check if permission is permanently denied
-  static Future<bool> isLocationPermanentlyDenied() async {
-    try {
-      final status = await Permission.location.status;
-      return status.isPermanentlyDenied;
-    } catch (e) {
-      print('Error checking permanently denied status: $e');
-      return false;
-    }
-  }
-
-  /// Check if Bluetooth permission is permanently denied
-  static Future<bool> isBluetoothPermanentlyDenied() async {
-    try {
-      if (Platform.isAndroid) {
-        final scanStatus = await Permission.bluetoothScan.status;
-        final connectStatus = await Permission.bluetoothConnect.status;
-        return scanStatus.isPermanentlyDenied || connectStatus.isPermanentlyDenied;
-      } else if (Platform.isIOS) {
-        final status = await Permission.bluetooth.status;
-        return status.isPermanentlyDenied;
-      }
-      return false;
-    } catch (e) {
-      print('Error checking Bluetooth permanently denied status: $e');
-      return false;
     }
   }
 
@@ -307,7 +316,7 @@ class AdapterManager {
   }
 
   /// Request all necessary permissions at once
-  static Future<Map<String, bool>> requestAllPermissions() async {
+  static Future<Map<String, PermissionStatus>> requestAllPermissions() async {
     final locationGranted = await requestLocationPermission();
     final bluetoothGranted = await requestBluetoothPermission();
 
@@ -355,21 +364,26 @@ class AdapterManager {
 
     try {
       // Step 1: Request Location Permission
-      print('Step 1: Requesting location permission...');
-      final locationPermission = await requestLocationPermission();
-      result['locationPermission'] = locationPermission;
+      final gpsEnabled1 = await isGpsEnabled();
+      if(gpsEnabled1 || Platform.isAndroid) {
+        print('Step 1: Requesting location permission...');
+        final locationPermission = await requestLocationPermission();
+        result['locationPermission'] = locationPermission;
 
-      if (!locationPermission) {
-        final isPermanentlyDenied = await isLocationPermanentlyDenied();
-        if (isPermanentlyDenied) {
-          errors.add('Location permission permanently denied. Please enable in settings.');
-          // await openLocationSettings();
-          result['PermanentlyDenied'] = true;
-          return result;
-        } else {
-          errors.add('Location permission denied.');
-          return result;
+        if (locationPermission != PermissionStatus.granted) {
+          if (locationPermission == PermissionStatus.permanentlyDenied) {
+            errors.add(
+                'Location permission permanently denied. Please enable in settings.');
+            await openLocationSettings();
+            result['PermanentlyDenied'] = true;
+            return result;
+          } else {
+            errors.add('Location permission denied.');
+            return result;
+          }
         }
+      }else{
+        throw AdapterException("GPS not enabled. Please enable location services.");
       }
 
       // Step 2: Enable GPS/Location Adapter
@@ -394,9 +408,8 @@ class AdapterManager {
       final bluetoothPermission = await requestBluetoothPermission();
       result['bluetoothPermission'] = bluetoothPermission;
 
-      if (!bluetoothPermission) {
-        final isPermanentlyDenied = await isBluetoothPermanentlyDenied();
-        if (isPermanentlyDenied) {
+      if (bluetoothPermission != PermissionStatus.granted) {
+        if (bluetoothPermission == PermissionStatus.permanentlyDenied) {
           errors.add('Bluetooth permission permanently denied. Please enable in settings.');
           // await openBluetoothSettings();
           result['PermanentlyDenied'] = true;
@@ -436,7 +449,9 @@ class AdapterManager {
       result['success'] = true;
       print('All permissions and adapters setup successfully!');
 
-    } catch (e) {
+    } on AdapterException{
+      rethrow;
+    }catch (e) {
       print('Error during setup: $e');
       errors.add('Unexpected error: $e');
     }

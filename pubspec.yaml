@@ -18,6 +18,7 @@ dependencies:
   geolocator:
   flutter_blue_plus:
   app_settings: ^5.1.1
+  bluetooth_enable_fork: ^0.1.7
 
 dev_dependencies:
   flutter_test:
@@ -29,6 +30,9 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+
+  assets:
+    - assets/
   # This section identifies this Flutter project as a plugin project.
   # The 'pluginClass' specifies the class (in Java, Kotlin, Swift, Objective-C, etc.)
   # which should be registered in the plugin registry. This is required for

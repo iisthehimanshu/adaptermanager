@@ -32,6 +32,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.11.0"
+  bluetooth_enable_fork:
+    dependency: transitive
+    description:
+      name: bluetooth_enable_fork
+      sha256: "041d95d4e7bb8fc9d0ee3d5c901b4426fdf31b0b77273d3cbdf2fba96f2fc9f1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.7"
   bluez:
     dependency: transitive
     description:

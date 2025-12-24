@@ -5,9 +5,30 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-    <string>We need location access</string>
+    <string>This app needs location access to provide navigation and nearby services.</string>
+
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app needs location access even in the background for continuous navigation.</string>
+
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>This app needs continuous location access for navigation features.</string>
+
+    <key>NSLocationUsageDescription</key>
+    <string>This app needs access to location when in the foreground.</string>
+
     <key>NSBluetoothAlwaysUsageDescription</key>
-    <string>We need Bluetooth access</string>
+    <string>This app uses Bluetooth to detect nearby devices for indoor navigation.</string>
+
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>This app requires Bluetooth access to connect to nearby devices.</string>
+
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>location</string>
+        <string>bluetooth-central</string>
+    </array>
+
+
 	<key>CFBundleDisplayName</key>
 	<string>Adapter Manager</string>
 	<key>CFBundleExecutable</key>

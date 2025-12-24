@@ -38,43 +38,14 @@ class _AdapterManagerDemoState extends State<AdapterManagerDemo> {
   @override
   void initState() {
     super.initState();
-    _checkAllStatuses();
-    _listenToBluetoothState();
-  }
-
-  void _listenToBluetoothState() {
-    AdapterManager.bluetoothAdapterStateStream.listen((state) {
-      setState(() {
-        _bluetoothEnabled = state == BluetoothAdapterState.on;
-      });
-    });
-  }
-
-  Future<void> _checkAllStatuses() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final permissions = await AdapterManager.checkAllPermissions();
-      final adapters = await AdapterManager.checkAllAdapters();
-
-      setState(() {
-        _locationPermissionGranted = permissions['location'] ?? false;
-        _bluetoothPermissionGranted = permissions['bluetooth'] ?? false;
-        _gpsEnabled = adapters['gps'] ?? false;
-        _bluetoothEnabled = adapters['bluetooth'] ?? false;
-      });
-    } finally {
-      setState(() => _isLoading = false);
-    }
   }
 
   Future<void> _requestLocationPermission() async {
     final granted = await AdapterManager.requestLocationPermission();
-    setState(() => _locationPermissionGranted = granted);
+    setState(() => _locationPermissionGranted = (granted == PermissionStatus.granted));
 
-    if (!granted) {
-      final isPermanentlyDenied = await AdapterManager.isLocationPermanentlyDenied();
-      if (isPermanentlyDenied) {
+    if (!_locationPermissionGranted) {
+      if (granted == PermissionStatus.permanentlyDenied) {
         _showPermissionDialog(
           'Location Permission',
           'Location permission is permanently denied. Please enable it in settings.',
@@ -90,11 +61,10 @@ class _AdapterManagerDemoState extends State<AdapterManagerDemo> {
 
   Future<void> _requestBluetoothPermission() async {
     final granted = await AdapterManager.requestBluetoothPermission();
-    setState(() => _bluetoothPermissionGranted = granted);
+    setState(() => _bluetoothPermissionGranted = (granted == PermissionStatus.granted));
 
-    if (!granted) {
-      final isPermanentlyDenied = await AdapterManager.isBluetoothPermanentlyDenied();
-      if (isPermanentlyDenied) {
+    if (!_bluetoothPermissionGranted) {
+      if (granted == PermissionStatus.permanentlyDenied) {
         _showPermissionDialog(
           'Bluetooth Permission',
           'Bluetooth permission is permanently denied. Please enable it in settings.',
@@ -140,12 +110,12 @@ class _AdapterManagerDemoState extends State<AdapterManagerDemo> {
     final results = await AdapterManager.requestAllPermissions();
 
     setState(() {
-      _locationPermissionGranted = results['location'] ?? false;
-      _bluetoothPermissionGranted = results['bluetooth'] ?? false;
+      _locationPermissionGranted = (results['location'] == PermissionStatus.granted) ?? false;
+      _bluetoothPermissionGranted = (results['bluetooth'] == PermissionStatus.granted) ?? false;
       _isLoading = false;
     });
 
-    final allGranted = results.values.every((granted) => granted);
+    final allGranted = results.values.every((granted) => granted == PermissionStatus.granted);
     if (allGranted) {
       _showSnackBar('All permissions granted!');
     } else {
@@ -154,28 +124,28 @@ class _AdapterManagerDemoState extends State<AdapterManagerDemo> {
   }
 
   Future<void> _checkAllStatus() async {
-    final result = await AdapterManager.setupAllPermissionsAndAdapters();
-    if (result['success']) {
-      _showSnackBar('All setup complete!');
-    } else {
-      _showSnackBar('${result['errors']}');
+    try{
+      final result = await AdapterManager.setupAllPermissionsAndAdapters();
+      if (result['success']) {
+        _showSnackBar('All setup complete!');
+      } else {
+        _showSnackBar('${result['errors']}');
+      }
+    }on AdapterException catch(e){
+      if(e.message.contains("GPS")){
+        showLocationDialog(context);
+      }
     }
   }
 
-  Future<void> _getCurrentLocation() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final position = await AdapterManager.getCurrentLocation();
-
-      if (position != null) {
-        _showLocationDialog(position);
-      } else {
-        _showSnackBar('Unable to get location. Check permissions and GPS.');
-      }
-    } finally {
-      setState(() => _isLoading = false);
-    }
+  void showLocationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return const LocationServicesDialog();
+      },
+    );
   }
 
   void _showPermissionDialog(String title, String message, VoidCallback onOpenSettings) {
@@ -195,31 +165,6 @@ class _AdapterManagerDemoState extends State<AdapterManagerDemo> {
               onOpenSettings();
             },
             child: const Text('Open Settings'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showLocationDialog(Position position) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Current Location'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Latitude: ${position.latitude}'),
-            Text('Longitude: ${position.longitude}'),
-            Text('Accuracy: ${position.accuracy}m'),
-            Text('Altitude: ${position.altitude}m'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
           ),
         ],
       ),
@@ -288,100 +233,79 @@ class _AdapterManagerDemoState extends State<AdapterManagerDemo> {
             ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _checkAllStatuses,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text(
-              'Permissions',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Permissions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 12),
-            _buildStatusCard(
-              title: 'Location Permission',
-              isEnabled: _locationPermissionGranted,
-              onTap: _requestLocationPermission,
-              icon: Icons.location_on,
+          ),
+          const SizedBox(height: 12),
+          _buildStatusCard(
+            title: 'Location Permission',
+            isEnabled: _locationPermissionGranted,
+            onTap: _requestLocationPermission,
+            icon: Icons.location_on,
+          ),
+          const SizedBox(height: 8),
+          _buildStatusCard(
+            title: 'Bluetooth Permission',
+            isEnabled: _bluetoothPermissionGranted,
+            onTap: _requestBluetoothPermission,
+            icon: Icons.bluetooth,
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Adapters',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 8),
-            _buildStatusCard(
-              title: 'Bluetooth Permission',
-              isEnabled: _bluetoothPermissionGranted,
-              onTap: _requestBluetoothPermission,
-              icon: Icons.bluetooth,
+          ),
+          const SizedBox(height: 12),
+          _buildStatusCard(
+            title: 'GPS',
+            isEnabled: _gpsEnabled,
+            onTap: _enableGps,
+            icon: Icons.gps_fixed,
+          ),
+          const SizedBox(height: 8),
+          _buildStatusCard(
+            title: 'Bluetooth Adapter',
+            isEnabled: _bluetoothEnabled,
+            onTap: _enableBluetooth,
+            icon: Icons.bluetooth_connected,
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Actions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Adapters',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: _checkAllStatus,
+            icon: const Icon(Icons.check),
+            label: const Text('Check all status'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.all(16),
             ),
-            const SizedBox(height: 12),
-            _buildStatusCard(
-              title: 'GPS',
-              isEnabled: _gpsEnabled,
-              onTap: _enableGps,
-              icon: Icons.gps_fixed,
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => AdapterManager.openAppSettings(),
+            icon: const Icon(Icons.settings),
+            label: const Text('Open App Settings'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.all(16),
             ),
-            const SizedBox(height: 8),
-            _buildStatusCard(
-              title: 'Bluetooth Adapter',
-              isEnabled: _bluetoothEnabled,
-              onTap: _enableBluetooth,
-              icon: Icons.bluetooth_connected,
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Actions',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: _checkAllStatus,
-              icon: const Icon(Icons.check),
-              label: const Text('Check all status'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : _getCurrentLocation,
-              icon: const Icon(Icons.my_location),
-              label: const Text('Get Current Location'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : _checkAllStatuses,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh All Status'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-              ),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => AdapterManager.openAppSettings(),
-              icon: const Icon(Icons.settings),
-              label: const Text('Open App Settings'),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.all(16),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
