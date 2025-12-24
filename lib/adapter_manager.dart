@@ -110,6 +110,7 @@ class AdapterManager {
     try {
       if (Platform.isAndroid) {
         final status = await Permission.bluetoothScan.request();
+        await Permission.bluetoothConnect.request();
         return status;
       } else if (Platform.isIOS) {
         try{
@@ -365,7 +366,7 @@ class AdapterManager {
     try {
       // Step 1: Request Location Permission
       final gpsEnabled1 = await isGpsEnabled();
-      if (gpsEnabled1 || Platform.isAndroid) {
+      if (gpsEnabled1) {
         print('Step 1: Requesting location permission...');
         final locationPermission = await requestLocationPermission();
         result['locationPermission'] = locationPermission;
