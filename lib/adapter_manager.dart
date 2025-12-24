@@ -365,7 +365,7 @@ class AdapterManager {
     try {
       // Step 1: Request Location Permission
       final gpsEnabled1 = await isGpsEnabled();
-      if(gpsEnabled1 || Platform.isAndroid) {
+      if (gpsEnabled1 || Platform.isAndroid) {
         print('Step 1: Requesting location permission...');
         final locationPermission = await requestLocationPermission();
         result['locationPermission'] = locationPermission;
@@ -382,8 +382,9 @@ class AdapterManager {
             return result;
           }
         }
-      }else{
-        throw AdapterException("GPS not enabled. Please enable location services.");
+      } else {
+        errors.add('GPS not enabled. Please enable location services.');
+        return result;
       }
 
       // Step 2: Enable GPS/Location Adapter
@@ -410,7 +411,8 @@ class AdapterManager {
 
       if (bluetoothPermission != PermissionStatus.granted) {
         if (bluetoothPermission == PermissionStatus.permanentlyDenied) {
-          errors.add('Bluetooth permission permanently denied. Please enable in settings.');
+          errors.add(
+              'Bluetooth permission permanently denied. Please enable in settings.');
           // await openBluetoothSettings();
           result['PermanentlyDenied'] = true;
           return result;
@@ -448,9 +450,6 @@ class AdapterManager {
       // All steps completed successfully
       result['success'] = true;
       print('All permissions and adapters setup successfully!');
-
-    } on AdapterException{
-      rethrow;
     }catch (e) {
       print('Error during setup: $e');
       errors.add('Unexpected error: $e');
