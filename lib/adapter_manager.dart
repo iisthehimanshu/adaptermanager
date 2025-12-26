@@ -366,7 +366,7 @@ class AdapterManager {
     try {
       // Step 1: Request Location Permission
       final gpsEnabled1 = await isGpsEnabled();
-      if (gpsEnabled1) {
+      if (gpsEnabled1 || Platform.isAndroid) {
         print('Step 1: Requesting location permission...');
         final locationPermission = await requestLocationPermission();
         result['locationPermission'] = locationPermission;
