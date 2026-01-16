@@ -373,9 +373,7 @@ class AdapterManager {
 
         if (locationPermission != PermissionStatus.granted) {
           if (locationPermission == PermissionStatus.permanentlyDenied) {
-            errors.add(
-                'Location permission permanently denied. Please enable in settings.');
-            await openLocationSettings();
+            errors.add('Location permission permanently denied. Please enable in settings.');
             result['PermanentlyDenied'] = true;
             return result;
           } else {
